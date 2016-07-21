@@ -79,6 +79,8 @@ do_push(RegIds, Message, Key, Retry) ->
             {error, Reason}
     end.
 
+handle_result(GCMResult, RegId) when is_binary(RegId) ->
+    handle_result(GCMResult, [RegId]);
 handle_result(GCMResult, RegIds) ->
     {_MulticastId, _SuccessesNumber, _FailuresNumber, _CanonicalIdsNumber, Results} = GCMResult,
     lists:map(fun({Result, RegId}) -> {RegId, parse(Result)} end, lists:zip(Results, RegIds)).
