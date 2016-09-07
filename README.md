@@ -5,6 +5,8 @@ This software provides an Erlang client for [`Firebase Cloud Messaging`](https:/
 
 This supports both Android & iOS notifications.
 
+The project is heavily inspired from [pdincau/gcm-erlang](https://github.com/pdincau/gcm-erlang). I would like to thank Paolo for the same.
+
 ### What you can do with fcm-erlang:
 
 Using `fcm-erlang` you can:
