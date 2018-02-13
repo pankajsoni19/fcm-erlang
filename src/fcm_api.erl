@@ -77,7 +77,8 @@ retry_after_from(Headers) ->
                 {Time, _} when is_integer(Time) ->
                     Time;
                 {error, no_integer} ->
-                    Date = qdate:to_unixtime(RetryTime),
-                    Date - qdate:unixtime()
+                   Date = httpd_util:convert_request_date(RetryTime),
+                   Now = calendar:universal_time(),
+                   calendar:datetime_to_gregorian_seconds(Date) - calendar:datetime_to_gregorian_seconds(Now)
             end
     end.

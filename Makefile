@@ -1,6 +1,6 @@
 PROJECT = fcm
 
-DEPS = lager qdate jsx
+DEPS = lager jsx
 include erlang.mk
 
 ERLC_COMPILE_OPTS= +'{parse_transform, lager_transform}'
