@@ -1,5 +1,7 @@
 PROJECT = fcm
 
+app:: rebar.config
+
 DEPS = lager jsx
 include erlang.mk
 
