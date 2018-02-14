@@ -31,7 +31,7 @@ To generate release
 You can use fcm_app as a dependency in your rebar.config:
 
     {deps , [
-        {fcm, ".*", {git, "https://github.com/softwarejoint/fcm-erlang.git", {tag, "1.0.0"}}}
+        {fcm, ".*", {git, "https://github.com/softwarejoint/fcm-erlang.git", {tag, "1.0.1"}}}
     ]}.
 
 ### How to run the application fcm-erlang:
