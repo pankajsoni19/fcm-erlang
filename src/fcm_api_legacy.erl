@@ -1,4 +1,4 @@
--module(fcm_api).
+-module(fcm_api_legacy).
 
 -include("logger.hrl").
 

@@ -11,10 +11,10 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
--spec start_child(atom(),string()) ->
+-spec start_child(atom(), map()) ->
        {'error',_} | {'ok','undefined' | pid()} | {'ok','undefined' | pid(),_}.
-start_child(Name, ApiKey) ->
-    supervisor:start_child(?MODULE, [Name, ApiKey]).
+start_child(Name, Opts) ->
+    supervisor:start_child(?MODULE, [Name, Opts]).
 
 -spec init([]) -> {ok, {{supervisor:strategy(), 5, 10}, [supervisor:child_spec()]}}.
 init([]) ->
