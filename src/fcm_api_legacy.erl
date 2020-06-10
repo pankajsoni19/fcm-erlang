@@ -2,7 +2,7 @@
 
 -include("logger.hrl").
 
--export([push/3]).
+-export([push/4]).
 
 -define(HTTP_OPTIONS, [{body_format, binary}]).
 -define(BASEURL, "https://fcm.googleapis.com/fcm/send").
@@ -10,26 +10,58 @@
 -define(HEADERS(ApiKey), [{"Authorization", ApiKey}]).
 -define(CONTENT_TYPE, "application/json").
 
--define(HTTP_REQUEST(ApiKey, Message),
-        {?BASEURL, ?HEADERS(ApiKey), ?CONTENT_TYPE, Message}).
+-define(HTTP_REQUEST(ApiKey, ReqBody),
+        {?BASEURL, ?HEADERS(ApiKey), ?CONTENT_TYPE, ReqBody}).
 
-push(RegIds, Message, ApiKey) when is_list(Message) ->
-    MessageMap = maps:from_list(Message),
-    push(RegIds, MessageMap, ApiKey);
+-spec push(list(binary()), map(), string(), integer()) -> list(tuple()) | {error, term()}.
+push(RegIds, Message, Key, Retry) ->
+    ?INFO_MSG("Sending message: ~p to reg ids: ~p retries: ~p.~n", [Message, RegIds, Retry]),
+    case do_push(RegIds, Message, Key) of
+        {ok, GCMResult} ->
+            handle_result(GCMResult, RegIds);
+        {error, {retry, RetryAfter}} when (Retry > 0)->
+            ?INFO_MSG("Received retry-after. Will retry: ~p times~n", [Retry]),
+            timer:sleep(RetryAfter * 1000),
+            push(RegIds, Message, Key, Retry - 1);
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
-push(RegId, Message, ApiKey) when is_binary(RegId) ->
-    push([RegId], Message, ApiKey);
+%% ----------------------------------------------------------------------
+%% internal
+%% ----------------------------------------------------------------------
+handle_result(GCMResult, RegId) when is_binary(RegId) ->
+    handle_result(GCMResult, [RegId]);
+handle_result(GCMResult, RegIds) ->
+    {_MulticastId, _SuccessesNumber, _FailuresNumber, _CanonicalIdsNumber, Results} = GCMResult,
+    lists:map(fun({Result, RegId}) -> {RegId, parse(Result)} end, lists:zip(Results, RegIds)).
 
-push([RegId], Message, ApiKey) ->
-    Request = maps:put(<<"to">>, RegId, Message),
-    push(jsx:encode(Request), ApiKey);
+parse(Result) ->
+    case {
+      proplists:get_value(<<"error">>, Result),
+      proplists:get_value(<<"message_id">>, Result),
+      proplists:get_value(<<"registration_id">>, Result)
+     } of
+        {Error, undefined, undefined} ->
+            Error;
+        {undefined, _MessageId, undefined}  ->
+            ok;
+        {undefined, _MessageId, NewRegId} ->
+            {<<"NewRegistrationId">>, NewRegId}
+    end.
 
-push(RegIds, Message, ApiKey) ->
-    Request = maps:put(<<"registration_ids">>, RegIds, Message),
-    push(jsx:encode(Request), ApiKey).
+%% ------------------------------------------------------------
+%% internal api
+%% ------------------------------------------------------------
+append_token(Message, [RegId]) ->
+    maps:put(<<"to">>, RegId, Message);
+append_token(Message, RegIds) ->
+    maps:put(<<"registration_ids">>, RegIds, Message).
 
-push(Message, ApiKey) ->
-    try httpc:request(post, ?HTTP_REQUEST(ApiKey, Message), [], ?HTTP_OPTIONS) of
+do_push(RegIds, MapBody0, ApiKey) ->
+    MapBody = append_token(MapBody0, RegIds),
+    ReqBody = jsx:encode(MapBody),
+    try httpc:request(post, ?HTTP_REQUEST(ApiKey, ReqBody), [], ?HTTP_OPTIONS) of
         {ok, {{_, 200, _}, _Headers, Body}} ->
             Json = jsx:decode(Body),
             ?INFO_MSG("Result was: ~p~n", [Json]),
