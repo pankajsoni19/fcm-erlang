@@ -1,12 +1,10 @@
 # fcm-erlang
 
-This software provides an Erlang client for [`Firebase Cloud Messaging`](https://firebase.google.com/docs/cloud-messaging).
-
-This supports via Firebase Cloud Messaging.
+This software provides an Erlang client for [`Firebase Cloud Messaging`](https://firebase.google.com/docs/cloud-messaging) to enable notifications to
 
 * Browser
 * Android
-* iOS notifications 
+* iOS notifications
 
 # Changelog
 
