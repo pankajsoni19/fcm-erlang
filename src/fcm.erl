@@ -1,5 +1,7 @@
 -module(fcm).
 
+-author('pankajsoni19@live.com').
+
 -behaviour(gen_server).
 
 -include("logger.hrl").
@@ -25,7 +27,7 @@ start_pool_with_json_service_file(Name, FilePath) ->
 
 -spec stop(atom()) -> ok.
 stop(Name) ->
-    gen_server:stop(Name, normal, 5000).
+    gen_server:call(Name, stop).
 
 -spec push(
             atom(),
@@ -68,6 +70,8 @@ handle_call({send, RegIds, Message, _Retry}, _From, State0) ->
     {ok, Reply, State} = fcm_api_v1:push(RegIds, Message, State0),
     {reply, Reply, State};
 
+handle_call(stop, _From, State) ->
+    {stop, normal, stopped, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
