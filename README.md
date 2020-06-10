@@ -1,9 +1,26 @@
 # fcm-erlang
 
-
 This software provides an Erlang client for [`Firebase Cloud Messaging`](https://firebase.google.com/docs/cloud-messaging).
 
-This supports both Browser, Android & iOS notifications via Firebase HTTP Legacy and HTTP v1 api.
+This supports via Firebase Cloud Messaging.
+
+* Browser
+* Android
+* iOS notifications 
+
+# Changelog
+
+__1.1.0 [ 10 June 2020 ]__ 
+
+* Added support for firebase http v1 cloud messaging.
+
+__1.0.1__
+
+* Remove qdate dependency
+
+__1.0.0__
+
+* Initial Release
 
 ### How to compile:
 
@@ -55,20 +72,25 @@ Two connection types are supported.
 
 ```
 6> fcm:stop(foo).
+6> fcm:stop(bar).
 ```
 
 ### How to send a FCM message using from a specific FCM application:
 
 At any time you can send a FCM message to one or more mobile devices by calling:
 
-    7> fcm:push(RegisteredName, RegIds, Message, Retry).
+```
+7> fcm:push(RegisteredName, RegIds, Message, Retry).
+```
 
 Where
- 
-	* `RegistereName` is the atom used during registration
-	* `RegId` is Registration Id specified as Erlang binary (e.g., `<<"APA91bHun4MxP5egoKMwt2KZFBaFUH-1RYqx...">>`)
-	* `RegIds` is a list (max 1000 elements) of `RegId`	* `Message` is an Erlang Map.
-	* `Retry` is only valid for legacy api.
+
+``` 
+* `RegistereName` is the atom used during registration
+* `RegId` is Registration Id specified as Erlang binary (e.g., `<<"APA91bHun4MxP5egoKMwt2KZFBaFUH-1RYqx...">>`)
+* `RegIds` is a list (max 1000 elements) of `RegId`	* `Message` is an Erlang Map.
+* `Retry` is only valid for legacy api.
+```
 
 In order to understand `Message` payload see [Message Syntax](https://firebase.google.com/docs/cloud-messaging/http-server-ref#send-downstream).
 or [Refer to HTTP v1](https://firebase.google.com/docs/cloud-messaging/send-message#rest)
