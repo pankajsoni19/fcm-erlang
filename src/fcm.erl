@@ -30,20 +30,18 @@ stop(Name) ->
     gen_server:call(Name, stop).
 
 push(Name, RegIds, Message, Retry) ->
-    gen_server:cast(Name, {send, RegIds, Message, Retry}).
+    gen_server:call(Name, {send, RegIds, Message, Retry}).
 
 %% OTP
 start_link(Name, Key) ->
     gen_server:start_link({local, Name}, ?MODULE, [Key], []).
 
-init(Opts) when is_list(Opts) ->
+init([#{fcm_key := ApiKey}]) ->
     process_flag(trap_exit, true),
-    MOpts = maps:from_list(Opts),
-    init(MOpts);
-init(#{fcm_key := ApiKey}) ->
     GoogleKey = string:concat("key=", ApiKey),
     {ok, #{auth_server_key => GoogleKey}};
-init(MapOpts) ->
+init([MapOpts]) ->
+    process_flag(trap_exit, true),
     application:ensure_all_started(google_oauth),
     {ok, reload_token(MapOpts)}.
 
@@ -86,19 +84,25 @@ do_push_bearer([RegId| RegIds], Body, AuthKey, PushUrl, Acc0) ->
     Acc = [{RegId, Res} | Acc0],
     do_push_bearer(RegIds, Body, AuthKey, PushUrl, Acc).
 
-do_push_bearer1(RegId, MapBody0, AuthKey, PushUrl) ->
-    MapBody = MapBody0#{ token   => RegId },
+append_token(#{message := Message} = M, Token) ->
+    M#{message => Message#{token => Token}};
+append_token(#{<<"message">> := Message} = M, Token) ->
+    M#{message => Message#{token => Token}};
+append_token(Message, Token) ->
+    #{message => Message#{token => Token}}.
 
+do_push_bearer1(RegId, Message0, AuthKey, PushUrl) ->
+    MapBody = append_token(Message0, RegId),
     Body = jsx:encode(MapBody),
-
     Request = {PushUrl, [{"Authorization", AuthKey}], "application/json; UTF-8", Body},
     case httpc:request(post, Request, ?HTTP_OPTS, ?REQ_OPTS) of
         {ok, {200, Result}} ->
             #{name := Name} = jsx:decode(Result, ?JSX_OPTS),
             MsgId = lists:last(binary:split(Name, <<"/">>, [global, trim_all])),
             {ok, MsgId};
-        {ok, {400, Result}} ->
-            {error, {bad_token, Result}};
+        {ok, {StatusCode, Result}} ->
+            ?ERROR_MSG("error sending notification result: ~p~n ~s~n", [StatusCode, Result]),
+            {error, Result};
         Error ->
             {error, Error}
     end.
