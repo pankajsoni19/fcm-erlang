@@ -6,7 +6,7 @@
 
 -define(HTTP_OPTIONS, [{body_format, binary}]).
 -define(BASEURL, "https://fcm.googleapis.com/fcm/send").
-
+-define(JSX_OPTS, [return_maps, {labels, atom}]).
 -define(HEADERS(ApiKey), [{"Authorization", ApiKey}]).
 -define(CONTENT_TYPE, "application/json").
 
@@ -33,22 +33,15 @@ push(RegIds, Message, Key, Retry) ->
 handle_result(GCMResult, RegId) when is_binary(RegId) ->
     handle_result(GCMResult, [RegId]);
 handle_result(GCMResult, RegIds) ->
-    {_MulticastId, _SuccessesNumber, _FailuresNumber, _CanonicalIdsNumber, Results} = GCMResult,
+    Json = jsx:decode(GCMResult, ?JSX_OPTS),
+    ?INFO_MSG("fcm_api_legacy: result: ~p~n", [Json]),
+    Results = maps:get(results, Json, []),
     lists:map(fun({Result, RegId}) -> {RegId, parse(Result)} end, lists:zip(Results, RegIds)).
 
-parse(Result) ->
-    case {
-      proplists:get_value(<<"error">>, Result),
-      proplists:get_value(<<"message_id">>, Result),
-      proplists:get_value(<<"registration_id">>, Result)
-     } of
-        {Error, undefined, undefined} ->
-            Error;
-        {undefined, _MessageId, undefined}  ->
-            ok;
-        {undefined, _MessageId, NewRegId} ->
-            {<<"NewRegistrationId">>, NewRegId}
-    end.
+parse(#{error := Error}) -> Error;
+parse(#{registration_id := NewRegId}) ->
+    {<<"NewRegistrationId">>, NewRegId};
+parse(_) -> ok.
 
 %% ------------------------------------------------------------
 %% internal api
@@ -63,9 +56,7 @@ do_push(RegIds, MapBody0, ApiKey) ->
     ReqBody = jsx:encode(MapBody),
     try httpc:request(post, ?HTTP_REQUEST(ApiKey, ReqBody), [], ?HTTP_OPTIONS) of
         {ok, {{_, 200, _}, _Headers, Body}} ->
-            Json = jsx:decode(Body),
-            ?INFO_MSG("Result was: ~p~n", [Json]),
-            {ok, result_from(Json)};
+            {ok, Body};
         {ok, {{_, 400, _}, _, Body}} ->
             ?ERROR_MSG("Error in request. Reason was: Bad Request - ~p~n", [Body]),
             {error, Body};
@@ -90,15 +81,6 @@ do_push(RegIds, MapBody0, ApiKey) ->
             ?ERROR_MSG("Error in request. Exception ~p while calling URL: ~p~n", [Exception, ?BASEURL]),
             {error, Exception}
     end.
-
-result_from(Json) ->
-    {
-      proplists:get_value(<<"multicast_id">>, Json),
-      proplists:get_value(<<"success">>, Json),
-      proplists:get_value(<<"failure">>, Json),
-      proplists:get_value(<<"canonical_ids">>, Json),
-      proplists:get_value(<<"results">>, Json)
-    }.
 
 retry_after_from(Headers) ->
     case proplists:get_value("retry-after", Headers) of
