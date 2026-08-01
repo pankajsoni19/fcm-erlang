@@ -25,6 +25,6 @@ init([]) ->
     {ok, {{simple_one_for_one, 5, 10}, [?CHILD(fcm, worker)]}}.
 
 -spec start_child(atom(), map()) ->
-       {'error',_} | {'ok','undefined' | pid()} | {'ok','undefined' | pid(),_}.
+       {'error',{'already_started',pid()}} | {'error',_} | {'ok',pid()}.
 start_child(Name, Opts) ->
     supervisor:start_child(?MODULE, [Name, Opts]).

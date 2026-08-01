@@ -12,7 +12,7 @@
 -define(HTTP_OPTS, [{timeout, 5000}]).
 -define(REQ_OPTS, [{full_result, false}, {body_format, binary}]).
 
--spec push(list(binary()), map(), string(), string()) -> list(tuple()).
+-spec push(list(binary()), map(), map()) -> {ok, list(tuple()), map()}.
 push(RegIds, Message, State) ->
     push(RegIds, Message, State, []).
 
